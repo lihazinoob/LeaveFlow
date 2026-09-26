@@ -41,3 +41,12 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
+
+app:
+  jwt:
+    # Base64-encoded 256-bit key. The default is for local development only;
+    # set JWT_SECRET to a new random value anywhere else.
+    secret: ${JWT_SECRET:XkTeVzddfqNkK+/oQvr7EGhYRcRo4IVLNSQmxkeG/uI=}
+    expiration: ${JWT_EXPIRATION:8h}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
