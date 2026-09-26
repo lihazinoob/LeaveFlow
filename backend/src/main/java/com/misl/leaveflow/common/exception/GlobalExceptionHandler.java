@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -79,6 +81,15 @@ public class GlobalExceptionHandler {
                                                            HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "Missing required parameter '" + ex.getParameterName() + "'",
                 request, null);
+    }
+
+    /** Login failures thrown by AuthenticationManager. The message never reveals whether the email exists. */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex, HttpServletRequest request) {
+        String message = ex instanceof DisabledException
+                ? "Your account has been deactivated. Please contact the administrator."
+                : "Invalid email or password";
+        return build(HttpStatus.UNAUTHORIZED, message, request, null);
     }
 
     /** Thrown by method-level security (@PreAuthorize) when the user lacks the required role. */
