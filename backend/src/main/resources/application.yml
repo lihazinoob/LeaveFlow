@@ -67,3 +67,6 @@ app:
   leave:
     # Bangladesh weekend. Leave days falling on these days are not counted.
     weekend-days: ${LEAVE_WEEKEND_DAYS:FRIDAY,SATURDAY}
+  demo-data:
+    # Loads sample leave requests (relative to today) into an empty database, for demos.
+    enabled: ${DEMO_DATA_ENABLED:true}
