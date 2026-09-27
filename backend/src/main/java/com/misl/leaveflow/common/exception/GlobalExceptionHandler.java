@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
@@ -74,6 +75,13 @@ public class GlobalExceptionHandler {
                                                        HttpServletRequest request) {
         String message = "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'";
         return build(HttpStatus.BAD_REQUEST, message, request, null);
+    }
+
+    /** e.g. ?sort=salary on an entity that has no "salary" field. */
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ApiError> handleUnknownProperty(PropertyReferenceException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "Unknown sort or filter field '" + ex.getPropertyName() + "'",
+                request, null);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

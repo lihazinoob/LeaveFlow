@@ -69,6 +69,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_ENDPOINTS).permitAll()
+                        // Writes to employee records are admin-only. Checked here as well as by @PreAuthorize,
+                        // because URL rules run before the request body is validated (a manager gets 403, not 400).
+                        .requestMatchers(HttpMethod.POST, "/api/employees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/employees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/employees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/employees/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(securityErrorHandler)
@@ -96,7 +102,7 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(corsProperties.allowedOrigins());
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         // Lets the browser send and receive the refresh-token cookie on cross-origin calls (dev server).
         config.setAllowCredentials(true);
