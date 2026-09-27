@@ -69,12 +69,17 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_ENDPOINTS).permitAll()
-                        // Writes to employee records are admin-only. Checked here as well as by @PreAuthorize,
-                        // because URL rules run before the request body is validated (a manager gets 403, not 400).
+                        // Role rules for requests that carry a body. Checked here as well as by @PreAuthorize,
+                        // because URL rules run before the body is validated (the wrong role gets 403, not 400).
                         .requestMatchers(HttpMethod.POST, "/api/employees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/employees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/employees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/employees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/holidays/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/holidays/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/holidays/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/leaves/*/approve", "/api/leaves/*/reject")
+                        .hasAnyRole("ADMIN", "MANAGER")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(securityErrorHandler)
