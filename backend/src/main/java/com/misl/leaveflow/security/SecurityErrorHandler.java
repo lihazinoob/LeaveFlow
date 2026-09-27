@@ -26,11 +26,16 @@ public class SecurityErrorHandler implements AuthenticationEntryPoint, AccessDen
 
     private final ObjectMapper objectMapper;
 
-    /** No valid token was sent to a protected endpoint. */
+    /**
+     * No valid access token was sent to a protected endpoint. An expired token gets its own message,
+     * so the client knows to call /api/auth/refresh instead of showing the login page.
+     */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        write(response, request, HttpStatus.UNAUTHORIZED, "Authentication required. Please log in.");
+        boolean expired = Boolean.TRUE.equals(request.getAttribute(JwtAuthenticationFilter.TOKEN_EXPIRED_ATTRIBUTE));
+        String message = expired ? "Access token has expired" : "Authentication required. Please log in.";
+        write(response, request, HttpStatus.UNAUTHORIZED, message);
     }
 
     /** A valid token was sent, but the user's role is not allowed to access the URL. */

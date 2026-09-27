@@ -12,6 +12,12 @@ import java.util.List;
 /**
  * The logged-in user as Spring Security sees it. Controllers receive it through
  * {@code @AuthenticationPrincipal} to know who is calling.
+ * <p>
+ * It is created in two ways:
+ * <ul>
+ *   <li>{@link #fromEmployee(Employee)}: at login, from the database row (includes the password hash to check).</li>
+ *   <li>{@link #fromTokenClaims}: on every other request, from the verified access token alone (no database hit).</li>
+ * </ul>
  */
 public class EmployeeUserDetails implements UserDetails {
 
@@ -22,17 +28,32 @@ public class EmployeeUserDetails implements UserDetails {
     private final Role role;
     private final boolean active;
 
-    public EmployeeUserDetails(Employee employee) {
-        this.id = employee.getId();
-        this.email = employee.getEmail();
-        this.passwordHash = employee.getPasswordHash();
-        this.fullName = employee.getFullName();
-        this.role = employee.getRole();
-        this.active = employee.isActive();
+    private EmployeeUserDetails(Long id, String email, String passwordHash, String fullName, Role role,
+                                boolean active) {
+        this.id = id;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.fullName = fullName;
+        this.role = role;
+        this.active = active;
+    }
+
+    public static EmployeeUserDetails fromEmployee(Employee employee) {
+        return new EmployeeUserDetails(employee.getId(), employee.getEmail(), employee.getPasswordHash(),
+                employee.getFullName(), employee.getRole(), employee.isActive());
+    }
+
+    /** A token is only issued to active users, so a valid token implies an active user. */
+    public static EmployeeUserDetails fromTokenClaims(Long id, String email, String fullName, Role role) {
+        return new EmployeeUserDetails(id, email, null, fullName, role, true);
     }
 
     public Long getId() {
         return id;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public String getFullName() {

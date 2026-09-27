@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 import java.util.Locale;
 
 /**
- * Loads a user by email. Used in two places:
- * the login check (via AuthenticationManager) and the JWT filter on every request.
+ * Loads a user by email for the login check performed by AuthenticationManager
+ * (it compares the submitted password with the stored BCrypt hash).
  */
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class EmployeeUserDetailsService implements UserDetailsService {
     @Override
     public EmployeeUserDetails loadUserByUsername(String email) {
         return employeeRepository.findByEmail(email.trim().toLowerCase(Locale.ROOT))
-                .map(EmployeeUserDetails::new)
+                .map(EmployeeUserDetails::fromEmployee)
                 .orElseThrow(() -> new UsernameNotFoundException("No employee with email " + email));
     }
 }

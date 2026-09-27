@@ -25,7 +25,12 @@ import java.util.List;
 /**
  * HTTP security rules.
  * <ul>
- *   <li>Stateless: no server session and no CSRF token; every request carries its own JWT.</li>
+ *   <li>Stateless: no server session. Every API request carries a short-lived JWT access token
+ *       in the Authorization header.</li>
+ *   <li>CSRF protection is off: the access token is sent in a header, which a malicious site cannot add.
+ *       The refresh-token cookie is SameSite=Strict, so the browser never sends it on cross-site requests.</li>
+ *   <li>The login, refresh and logout endpoints are public: at that point the access token
+ *       may be missing or expired.</li>
  *   <li>URL rules below cover the coarse access; finer role checks use {@code @PreAuthorize}
  *       on controller methods (enabled by {@code @EnableMethodSecurity}).</li>
  * </ul>
@@ -37,6 +42,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String[] PUBLIC_AUTH_ENDPOINTS = {
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/api/auth/logout"
+    };
+
     private static final String[] PUBLIC_ENDPOINTS = {
             "/actuator/health",
             "/swagger-ui.html",
@@ -46,7 +57,6 @@ public class SecurityConfig {
     };
 
     private final JwtService jwtService;
-    private final EmployeeUserDetailsService userDetailsService;
     private final SecurityErrorHandler securityErrorHandler;
     private final CorsProperties corsProperties;
 
@@ -58,12 +68,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(securityErrorHandler)
                         .accessDeniedHandler(securityErrorHandler))
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService, userDetailsService),
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -74,7 +84,10 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /** Checks email + password at login, using EmployeeUserDetailsService and the PasswordEncoder above. */
+    /**
+     * Checks email + password at login. Spring wires it with our EmployeeUserDetailsService bean
+     * and the PasswordEncoder above.
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
@@ -85,6 +98,8 @@ public class SecurityConfig {
         config.setAllowedOrigins(corsProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Lets the browser send and receive the refresh-token cookie on cross-origin calls (dev server).
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
