@@ -10,6 +10,7 @@ import com.misl.leaveflow.employee.dto.EmployeeCreateRequest;
 import com.misl.leaveflow.employee.dto.EmployeeOption;
 import com.misl.leaveflow.employee.dto.EmployeeResponse;
 import com.misl.leaveflow.employee.dto.EmployeeUpdateRequest;
+import com.misl.leaveflow.leave.LeaveWorkflowService;
 import com.misl.leaveflow.security.EmployeeUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +35,8 @@ import java.util.Objects;
  *   <li>EMPLOYEE and MANAGER must report to an active MANAGER or ADMIN; the reporting line cannot loop.</li>
  *   <li>Someone with active direct reports cannot be demoted to EMPLOYEE or deactivated until the team is reassigned.</li>
  *   <li>An admin cannot change their own role or deactivate themselves (prevents locking everyone out).</li>
- *   <li>Deactivation is a soft delete: history is kept, and all refresh tokens are revoked so the person is signed out.</li>
+ *   <li>Deactivation is a soft delete: history is kept, all refresh tokens are revoked so the person is signed out,
+ *       and their pending leave requests are cancelled.</li>
  * </ul>
  */
 @Service
@@ -44,6 +46,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
+    private final LeaveWorkflowService leaveWorkflowService;
 
     @Transactional(readOnly = true)
     public PageResponse<EmployeeResponse> search(String search, String department, Role role, Boolean active,
@@ -141,6 +144,7 @@ public class EmployeeService {
 
         employee.setActive(false);
         refreshTokenService.revokeAllForEmployee(id, RevokedReason.ACCOUNT_DEACTIVATED);
+        leaveWorkflowService.cancelPendingRequestsOf(id, currentUser.getId());
     }
 
     @Transactional

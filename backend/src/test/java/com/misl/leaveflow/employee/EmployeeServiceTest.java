@@ -8,6 +8,7 @@ import com.misl.leaveflow.common.exception.ResourceNotFoundException;
 import com.misl.leaveflow.employee.dto.EmployeeCreateRequest;
 import com.misl.leaveflow.employee.dto.EmployeeResponse;
 import com.misl.leaveflow.employee.dto.EmployeeUpdateRequest;
+import com.misl.leaveflow.leave.LeaveWorkflowService;
 import com.misl.leaveflow.security.EmployeeUserDetails;
 import com.misl.leaveflow.support.TestEmployees;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,8 @@ class EmployeeServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private RefreshTokenService refreshTokenService;
+    @Mock
+    private LeaveWorkflowService leaveWorkflowService;
 
     @InjectMocks
     private EmployeeService employeeService;
@@ -199,13 +202,14 @@ class EmployeeServiceTest {
     // ---------- deactivate / activate ----------
 
     @Test
-    void deactivate_setsInactive_andSignsTheEmployeeOut() {
+    void deactivate_setsInactive_signsTheEmployeeOut_andCancelsPendingLeave() {
         when(employeeRepository.findById(7L)).thenReturn(Optional.of(rakib));
 
         employeeService.deactivate(7L, adminUser);
 
         assertThat(rakib.isActive()).isFalse();
         verify(refreshTokenService).revokeAllForEmployee(7L, RevokedReason.ACCOUNT_DEACTIVATED);
+        verify(leaveWorkflowService).cancelPendingRequestsOf(7L, 1L);
     }
 
     @Test
@@ -224,7 +228,7 @@ class EmployeeServiceTest {
         assertThatThrownBy(() -> employeeService.deactivate(2L, adminUser))
                 .isInstanceOf(BusinessRuleException.class);
         assertThat(manager.isActive()).isTrue();
-        verifyNoInteractions(refreshTokenService);
+        verifyNoInteractions(refreshTokenService, leaveWorkflowService);
     }
 
     @Test
