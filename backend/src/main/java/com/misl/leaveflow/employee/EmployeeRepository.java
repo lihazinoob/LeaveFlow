@@ -19,6 +19,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     boolean existsByEmail(String email);
 
+    long countByActiveTrue();
+
     boolean existsByEmailAndIdNot(String email, Long id);
 
     /** True if someone still active reports to this employee. */
