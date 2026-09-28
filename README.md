@@ -4,7 +4,7 @@ A full-stack leave management app. Employees apply for leave, managers approve i
 It handles Bangladesh working days (Friday–Saturday weekends and public holidays), leave balances per type, and a full audit trail.
 Authentication uses JWT access tokens plus rotating refresh tokens.
 
-> 🚧 Work in progress. The backend and the React frontend are done; Docker setup and the architecture write-up come next.
+> 🚧 Work in progress. The app runs fully in Docker; the architecture write-up comes next.
 
 ## Tech stack
 - **Backend:** Java 17, Spring Boot 4, Spring Security, Spring Data JPA, Flyway, jjwt
@@ -17,6 +17,7 @@ Authentication uses JWT access tokens plus rotating refresh tokens.
 /backend             Spring Boot REST API
 /frontend            React single-page app
 docker-compose.yml   Full stack: db + backend + frontend
+.env.example         Optional settings for docker-compose
 ```
 
 ## Authentication
@@ -37,6 +38,29 @@ LeaveFlow uses the standard two-token model:
 4. Refresh **rotates** the refresh token: the old one is revoked, and a new pair is returned.
 5. If an already-rotated refresh token is ever used again, it was probably stolen. All of that user's sessions are revoked (reuse detection).
 6. `POST /api/auth/logout` revokes the refresh token and clears the cookie.
+
+## Quick start with Docker
+Prerequisite: Docker Desktop (or Docker Engine with the compose plugin).
+
+```bash
+docker compose up --build
+```
+
+Then open **http://localhost:3000** and log in with one of the [demo accounts](#demo-accounts).
+The first build downloads Maven and npm dependencies and takes a few minutes; later starts take seconds.
+
+| Container | What it runs | Host port |
+|---|---|---|
+| `frontend` | nginx serving the React build; forwards `/api` and Swagger UI to the backend | 3000 |
+| `backend` | Spring Boot jar (runs as a non-root user) | 8080 (Swagger UI: http://localhost:8080/swagger-ui.html) |
+| `db` | PostgreSQL 17, data kept in the `db-data` volume | 5433 (so it doesn't clash with a local PostgreSQL) |
+
+- The containers start in order using healthchecks: the backend waits for the database, and nginx waits for the backend.
+- Flyway creates the schema on the first start, and demo leave data is loaded into the empty database.
+- Every setting has a working default. To change passwords, the JWT key or ports, copy `.env.example` to `.env` and edit it.
+- `docker compose down` stops everything and keeps the data; `docker compose down -v` also deletes the database volume.
+
+Because nginx serves the app and the API from one origin, the browser needs no CORS, and the `SameSite=Strict` refresh-token cookie works as-is.
 
 ## Running the backend locally
 Prerequisites: Java 17 and a running PostgreSQL.
