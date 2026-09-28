@@ -4,7 +4,7 @@ A full-stack leave management app. Employees apply for leave, managers approve i
 It handles Bangladesh working days (Friday–Saturday weekends and public holidays), leave balances per type, and a full audit trail.
 Authentication uses JWT access tokens plus rotating refresh tokens.
 
-> 🚧 Work in progress. The backend foundation and authentication are done; leave management and the React UI come next.
+> 🚧 Work in progress. The backend and the React frontend are done; Docker setup and the architecture write-up come next.
 
 ## Tech stack
 - **Backend:** Java 17, Spring Boot 4, Spring Security, Spring Data JPA, Flyway, jjwt
@@ -56,6 +56,18 @@ Run the tests (no database needed):
 ```bash
 ./mvnw test
 ```
+
+## Running the frontend locally
+Prerequisites: Node.js 20+ and the backend running on port 8080.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Open http://localhost:5173. The Vite dev server forwards `/api` calls to the backend, so the browser talks to a single origin. That lets the refresh-token cookie work exactly as it will behind nginx in Docker.
+
+On first start, the backend fills an empty database with sample leave requests dated around *today*, so the dashboards, charts and calendar have data. Turn this off with `DEMO_DATA_ENABLED=false`.
 
 ### Demo accounts
 | Role | Email | Password |
