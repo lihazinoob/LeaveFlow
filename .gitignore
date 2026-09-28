@@ -23,3 +23,5 @@ frontend/dist/
 
 docs/
 CLAUDE.md
+# Local Claude Code preview config
+.claude/launch.json
